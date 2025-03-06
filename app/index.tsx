@@ -14,15 +14,14 @@ const Stack = createNativeStackNavigator();
 export default function Index() {
   return (
     // <NavigationContainer>
-      <Stack.Navigator>
-        <Stack.Screen name="Home" component={Home} options={{title: 'Welcome'}} />
-        <Stack.Screen name="Converter" component={Converter} options={{title: 'Converter'}} />
-        <Stack.Screen name="Notes" component={Notes} options={{title: 'Notes'}} />
-        <Stack.Screen name="CGPA" component={CGPA} options={{title: 'CGPA'}} />
-        <Stack.Screen name="PdfToImage" component={PdfToImage} options={{title: 'PdfToImage'}} />
-        <Stack.Screen name="ImageConverter" component={ImageConverter} options={{title: 'ImageConverter'}} />
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Converter" component={Converter} />
+        <Stack.Screen name="Notes" component={Notes} />
+        <Stack.Screen name="CGPA" component={CGPA} />
+        <Stack.Screen name="PdfToImage" component={PdfToImage} />
+        <Stack.Screen name="ImageConverter" component={ImageConverter} />
       </Stack.Navigator>
-   /* </NavigationContainer> */
+    // </NavigationContainer>
   );
 }
-
