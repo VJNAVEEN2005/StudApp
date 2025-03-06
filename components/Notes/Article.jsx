@@ -13,7 +13,8 @@ import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons, FontAwesome5, Ionicons } from "@expo/vector-icons";
 import Markdown from "react-native-markdown-display";
-
+import { Light as SyntaxHighlighter } from "react-native-syntax-highlighter";
+import { docco } from "react-syntax-highlighter/styles/hljs";
 
 const Article = ({ route }) => {
   const [groupedData, setGroupedData] = useState("");
@@ -55,10 +56,7 @@ const Article = ({ route }) => {
 
       <ScrollView style={styles.cardsContainer}>
         <View style={styles.cardsContainer}>
-          <Text>{route.params.category}</Text>
-          <Text>{route.params.topic}</Text>
-          <Markdown>{groupedData}</Markdown>
-         
+          <Markdown style={markdownStyles}>{groupedData}</Markdown>
         </View>
       </ScrollView>
     </LinearGradient>
@@ -73,8 +71,8 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     padding: 20,
-    paddingTop: 40,
-    paddingBottom: 30,
+    paddingTop: 10,
+    paddingBottom: 10,
   },
   headerTitle: {
     fontSize: 32,
@@ -87,7 +85,10 @@ const styles = StyleSheet.create({
     color: "rgba(255, 255, 255, 0.8)",
   },
   cardsContainer: {
-    paddingHorizontal: 20,
+    padding: 5,
+    backgroundColor: "white",
+    margin: 10,
+    borderRadius: 10,
   },
   card: {
     backgroundColor: "#ffffff",
@@ -143,3 +144,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+const markdownStyles = {
+  body: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  heading1: {
+    fontSize: 24,
+    fontWeight: "900",
+    marginVertical: 15,
+    color: "#3700b3",
+  },
+  heading2: {
+    fontSize: 20,
+    fontWeight: "500",
+    marginVertical: 8,
+    color: "#32098f",
+  },
+  heading3: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginVertical: 6,
+  },
+  heading4: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginVertical: 4,
+  },
+  heading5: {
+    fontSize: 14,
+    fontWeight: "bold",
+    marginVertical: 2,
+  },
+  heading6: {
+    fontSize: 12,
+    fontWeight: "bold",
+    marginVertical: 1,
+  },
+  link: {
+    color: "#bb86fc",
+  },
+  listItem: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+
+  table: {
+    marginVertical: 10,
+    borderRadius: 3,
+    backgroundColor: "#cfbceb",
+  },
+
+  td: {
+    borderWidth: 1,
+  },
+  th: {
+    borderWidth: 1,
+  },
+};
