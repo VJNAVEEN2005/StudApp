@@ -9,12 +9,12 @@ const Home = () => {
 
   // Define menu items with icons and descriptions
   const menuItems = [
-    {
-      title: "Converter",
-      icon: <MaterialIcons name="compare-arrows" size={28} color="#6200ee" />,
-      description: "Convert units and measurements",
-      screen: "Converter"
-    },
+    // {
+    //   title: "Converter",
+    //   icon: <MaterialIcons name="compare-arrows" size={28} color="#6200ee" />,
+    //   description: "Convert units and measurements",
+    //   screen: "Converter"
+    // },
     {
       title: "CGPA Calculator",
       icon: <FontAwesome5 name="calculator" size={24} color="#6200ee" />,
