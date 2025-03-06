@@ -7,7 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
-
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -53,6 +53,14 @@ const Content = ({ route }) => {
       <View style={styles.headerContainer}>
         <Text style={styles.headerTitle}>{formattedCategory}</Text>
       </View>
+
+      {loading && (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color="#ffffff" />
+        </View>
+      )}
 
       <View style={styles.cardsContainer}>
         {groupedData[category]?.map((item, index) => (

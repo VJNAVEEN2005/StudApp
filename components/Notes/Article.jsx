@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   StatusBar,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -54,11 +55,21 @@ const Article = ({ route }) => {
         <Text style={styles.headerTitle}>{formattedTopic}</Text>
       </View>
 
-      <ScrollView style={styles.cardsContainer}>
-        <View style={styles.cardsContainer}>
-          <Markdown style={markdownStyles}>{groupedData}</Markdown>
+      {loading && (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color="#ffffff" />
         </View>
-      </ScrollView>
+      )}
+
+      {!loading && (
+        <ScrollView style={styles.cardsContainer}>
+          <View style={styles.cardsContainer}>
+            <Markdown style={markdownStyles}>{groupedData}</Markdown>
+          </View>
+        </ScrollView>
+      )}
     </LinearGradient>
   );
 };

@@ -5,6 +5,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
@@ -23,7 +24,6 @@ const Notes = () => {
       .get(`${api.primary}/api/topics`)
       .then((response) => {
         setGroupedData(response.data);
-
         setLoading(false);
       })
       .catch((err) => {
@@ -37,7 +37,6 @@ const Notes = () => {
   useEffect(() => {
     console.log(Object.keys(groupedData));
   }, [groupedData]);
-
 
   return (
     <LinearGradient
@@ -53,36 +52,47 @@ const Notes = () => {
         </Text>
       </View>
 
+      {loading && (
+        <View
+          style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
+        >
+          <ActivityIndicator size="large" color="#ffffff" />
+        </View>
+      )}
+
       <View style={styles.cardsContainer}>
         {Object.keys(groupedData).map((item, index) => (
           <TouchableOpacity
             key={index}
             style={styles.card}
             activeOpacity={0.8}
-            onPress={() => navigation.navigate("Content",{
-              category: item
-            })}
+            onPress={() =>
+              navigation.navigate("Content", {
+                category: item,
+              })
+            }
           >
             <View style={styles.cardContent}>
-                          <View style={styles.iconContainer}>
-                            <MaterialIcons name="note" size={28} color="#6200ee" />
-                          </View>
-                          <View style={styles.textContainer}>
-                            <Text style={styles.cardTitle}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
-                            <Text style={styles.cardDescription}>
-                              {groupedData[item].length} notes
-                            </Text>
-                          </View>
-                          <MaterialIcons
-                            name="arrow-forward-ios"
-                            size={18}
-                            color="#6200ee"
-                          />
-                        </View>
+              <View style={styles.iconContainer}>
+                <MaterialIcons name="note" size={28} color="#6200ee" />
+              </View>
+              <View style={styles.textContainer}>
+                <Text style={styles.cardTitle}>
+                  {item.charAt(0).toUpperCase() + item.slice(1)}
+                </Text>
+                <Text style={styles.cardDescription}>
+                  {groupedData[item].length} notes
+                </Text>
+              </View>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={18}
+                color="#6200ee"
+              />
+            </View>
           </TouchableOpacity>
         ))}
       </View>
-
 
       <View style={styles.footer}>
         <Text style={styles.footerText}>Version 1.0</Text>
