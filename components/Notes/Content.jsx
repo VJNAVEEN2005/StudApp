@@ -1,22 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { api } from "../../api/backend";
+import axios from "axios";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons, FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { api } from "../api/backend";
-import axios from "axios";
 
-const Notes = () => {
+const Content = ({ route }) => {
   const navigation = useNavigation();
   const [groupedData, setGroupedData] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const category = route.params?.category || "Unknown";
+
+  const formattedCategory =
+    category.charAt(0).toUpperCase() + category.slice(1);
 
   useEffect(() => {
     axios
@@ -38,7 +43,6 @@ const Notes = () => {
     console.log(Object.keys(groupedData));
   }, [groupedData]);
 
-
   return (
     <LinearGradient
       colors={["#6200ee", "#3700b3"]}
@@ -47,49 +51,45 @@ const Notes = () => {
       <StatusBar barStyle="light-content" backgroundColor="#6200ee" />
 
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Notes</Text>
-        <Text style={styles.headerSubtitle}>
-          All your academic utilities in one place
-        </Text>
+        <Text style={styles.headerTitle}>{formattedCategory}</Text>
       </View>
 
       <View style={styles.cardsContainer}>
-        {Object.keys(groupedData).map((item, index) => (
+        {groupedData[category]?.map((item, index) => (
           <TouchableOpacity
             key={index}
             style={styles.card}
             activeOpacity={0.8}
-            onPress={() => navigation.navigate("Content",{
-              category: item
-            })}
+            onPress={() =>
+              navigation.navigate("Article", {
+                category: item.category,
+                topic: item.topic,
+              })
+            }
           >
             <View style={styles.cardContent}>
-                          <View style={styles.iconContainer}>
-                            <MaterialIcons name="note" size={28} color="#6200ee" />
-                          </View>
-                          <View style={styles.textContainer}>
-                            <Text style={styles.cardTitle}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
-                            <Text style={styles.cardDescription}>
-                              {groupedData[item].length} notes
-                            </Text>
-                          </View>
-                          <MaterialIcons
-                            name="arrow-forward-ios"
-                            size={18}
-                            color="#6200ee"
-                          />
-                        </View>
+              <View style={styles.iconContainer}>
+                <MaterialIcons name="book" size={28} color="#6200ee" />
+              </View>
+              <View style={styles.textContainer}>
+                <Text style={styles.cardTitle}>
+                  {item.topic.charAt(0).toUpperCase() + item.topic.slice(1)}
+                </Text>
+              </View>
+              <MaterialIcons
+                name="arrow-forward-ios"
+                size={18}
+                color="#6200ee"
+              />
+            </View>
           </TouchableOpacity>
         ))}
-      </View>
-
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Version 1.0</Text>
       </View>
     </LinearGradient>
   );
 };
+
+export default Content;
 
 const styles = StyleSheet.create({
   gradientContainer: {
@@ -167,5 +167,3 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-
-export default Notes;

@@ -1,43 +1,46 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import { api } from "../../api/backend";
+import axios from "axios";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   StatusBar,
+  ScrollView,
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
 import { MaterialIcons, FontAwesome5, Ionicons } from "@expo/vector-icons";
-import { api } from "../api/backend";
-import axios from "axios";
+import Markdown from "react-native-markdown-display";
 
-const Notes = () => {
-  const navigation = useNavigation();
-  const [groupedData, setGroupedData] = useState({});
+
+const Article = ({ route }) => {
+  const [groupedData, setGroupedData] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+
+  const navigation = useNavigation();
+  const category = route.params?.category || "Unknown";
+  const topic = route.params?.topic || "Unknown";
+
+  const formattedTopic = topic.charAt(0).toUpperCase() + topic.slice(1);
 
   useEffect(() => {
     axios
-      .get(`${api.primary}/api/topics`)
+      .get(`${api.primary}/api/topic/${category}/${topic}`)
       .then((response) => {
-        setGroupedData(response.data);
-
+        setGroupedData(response.data.content);
         setLoading(false);
       })
       .catch((err) => {
         console.error("Error fetching topics:", err);
-        setError("Failed to load topics.");
         setLoading(false);
       });
-    console.log(api.primary);
-  }, []);
+  });
 
   useEffect(() => {
-    console.log(Object.keys(groupedData));
-  }, [groupedData]);
-
+    console.log(groupedData);
+  }, []);
 
   return (
     <LinearGradient
@@ -47,49 +50,22 @@ const Notes = () => {
       <StatusBar barStyle="light-content" backgroundColor="#6200ee" />
 
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Notes</Text>
-        <Text style={styles.headerSubtitle}>
-          All your academic utilities in one place
-        </Text>
+        <Text style={styles.headerTitle}>{formattedTopic}</Text>
       </View>
 
-      <View style={styles.cardsContainer}>
-        {Object.keys(groupedData).map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={styles.card}
-            activeOpacity={0.8}
-            onPress={() => navigation.navigate("Content",{
-              category: item
-            })}
-          >
-            <View style={styles.cardContent}>
-                          <View style={styles.iconContainer}>
-                            <MaterialIcons name="note" size={28} color="#6200ee" />
-                          </View>
-                          <View style={styles.textContainer}>
-                            <Text style={styles.cardTitle}>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
-                            <Text style={styles.cardDescription}>
-                              {groupedData[item].length} notes
-                            </Text>
-                          </View>
-                          <MaterialIcons
-                            name="arrow-forward-ios"
-                            size={18}
-                            color="#6200ee"
-                          />
-                        </View>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Version 1.0</Text>
-      </View>
+      <ScrollView style={styles.cardsContainer}>
+        <View style={styles.cardsContainer}>
+          <Text>{route.params.category}</Text>
+          <Text>{route.params.topic}</Text>
+          <Markdown>{groupedData}</Markdown>
+         
+        </View>
+      </ScrollView>
     </LinearGradient>
   );
 };
+
+export default Article;
 
 const styles = StyleSheet.create({
   gradientContainer: {
@@ -167,5 +143,3 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-
-export default Notes;

@@ -8,6 +8,8 @@ import Notes from "../pages/Notes"
 import CGPA from "../pages/CGPA"
 import PdfToImage from '../components/Converter/PdfToImage'
 import ImageConverter from '../components/Converter/ImageConverter'
+import Content from '../components/Notes/Content'
+import Article from '../components/Notes/Article'
 
 const Stack = createNativeStackNavigator();
 
@@ -21,6 +23,8 @@ export default function Index() {
         <Stack.Screen name="CGPA" component={CGPA} />
         <Stack.Screen name="PdfToImage" component={PdfToImage} />
         <Stack.Screen name="ImageConverter" component={ImageConverter} />
+        <Stack.Screen name="Content" component={Content} />
+        <Stack.Screen name="Article" component={Article} />
       </Stack.Navigator>
     // </NavigationContainer>
   );
