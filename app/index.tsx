@@ -18,11 +18,11 @@ export default function Index() {
     // <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Home" component={Home} />
-        <Stack.Screen name="Converter" component={Converter} />
+        {/* <Stack.Screen name="Converter" component={Converter} /> */}
         <Stack.Screen name="Notes" component={Notes} />
         <Stack.Screen name="CGPA" component={CGPA} />
-        <Stack.Screen name="PdfToImage" component={PdfToImage} />
-        <Stack.Screen name="ImageConverter" component={ImageConverter} />
+        {/* <Stack.Screen name="PdfToImage" component={PdfToImage} />
+        <Stack.Screen name="ImageConverter" component={ImageConverter} /> */}
         <Stack.Screen name="Content" component={Content} />
         <Stack.Screen name="Article" component={Article} />
       </Stack.Navigator>

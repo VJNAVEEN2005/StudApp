@@ -23,8 +23,8 @@ const Home = () => {
     },
     {
       title: "Notes",
-      icon: <MaterialIcons name="note" size={28} color="#6200ee" />,
-      description: "Store and organize your notes",
+      icon: <MaterialIcons name="notes" size={24} color="#6200ee" />,
+      description: "Notes for basic concepts",
       screen: "Notes"
     }
   ];
