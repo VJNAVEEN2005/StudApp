@@ -16,17 +16,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 const CGPA = () => {
   const [years, setYears] = useState([
-    { year: 1, semesters: [[], []] }, // Two empty semesters for year 1
-    { year: 2, semesters: [[], []] }, // Two empty semesters for year 2
-    { year: 3, semesters: [[], []] }, // Two empty semesters for year 3
-    { year: 4, semesters: [[]] }      // One semester for year 4
+    { year: 1, semesters: [[], []] }, 
+    { year: 2, semesters: [[], []] }, 
+    { year: 3, semesters: [[], []] }, 
+    { year: 4, semesters: [[]] }      
   ]);
 
   const [cgpa, setCgpa] = useState(0);
   const [semesterGPAs, setSemesterGPAs] = useState({});
   const [expandedSemesters, setExpandedSemesters] = useState({});
 
-  // Toggle semester expansion
+  
   const toggleSemester = (yearIndex, semesterIndex) => {
     const key = `${yearIndex}-${semesterIndex}`;
     setExpandedSemesters({
@@ -35,7 +35,7 @@ const CGPA = () => {
     });
   };
 
-  // Add a subject to a specific semester
+  
   const addSubject = (yearIndex, semesterIndex) => {
     const newYears = [...years];
     newYears[yearIndex].semesters[semesterIndex].push({
@@ -46,21 +46,18 @@ const CGPA = () => {
     setYears(newYears);
   };
 
-  // Remove a subject from a semester
   const removeSubject = (yearIndex, semesterIndex, subjectIndex) => {
     const newYears = [...years];
     newYears[yearIndex].semesters[semesterIndex].splice(subjectIndex, 1);
     setYears(newYears);
   };
 
-  // Update subject details
   const updateSubject = (yearIndex, semesterIndex, subjectIndex, field, value) => {
     const newYears = [...years];
     newYears[yearIndex].semesters[semesterIndex][subjectIndex][field] = value;
     setYears(newYears);
   };
 
-  // Convert grade to grade points
   const getGradePoint = (grade) => {
     const gradePoints = {
       'S': 10, 'A': 9, 'B': 8, 'C': 7, 'D': 6, 'E': 5, 'F': 0
@@ -68,7 +65,7 @@ const CGPA = () => {
     return gradePoints[grade.toUpperCase()] || 0;
   };
 
-  // Calculate GPA for a single semester
+  // Single Sem
   const calculateSemesterGPA = (semester) => {
     let totalCredits = 0;
     let totalGradePoints = 0;
@@ -113,7 +110,7 @@ const CGPA = () => {
     saveData();
   };
 
-  // Save data to AsyncStorage
+  // storage 
   const saveData = async () => {
     try {
       await AsyncStorage.setItem('cgpaData', JSON.stringify(years));
@@ -124,7 +121,6 @@ const CGPA = () => {
     }
   };
 
-  // Load data from AsyncStorage
   const loadData = async () => {
     try {
       const savedData = await AsyncStorage.getItem('cgpaData');
@@ -136,12 +132,11 @@ const CGPA = () => {
     }
   };
 
-  // Load saved data when component mounts
   useEffect(() => {
     loadData();
   }, []);
 
-  // Grade color mapping
+
   const getGradeColor = (grade) => {
     const gradeColors = {
       'S': '#8e44ad', // Purple
@@ -271,13 +266,11 @@ const CGPA = () => {
         </html>
       `;
 
-      // Generate PDF file
+      // GPDF
       const file = await Print.printToFileAsync({
         html: htmlContent,
         base64: false
       });
-
-      // Share the PDF
       await Sharing.shareAsync(file.uri, {
         mimeType: 'application/pdf',
         dialogTitle: 'Share Academic Report',
@@ -403,7 +396,7 @@ const CGPA = () => {
                         style={styles.addButton}
                         onPress={() => addSubject(yearIndex, semesterIndex)}
                       >
-                        <MaterialIcons name="add" size={20} color="#fff" />
+                        <MaterialIcons name="add" size={20} color="white" />
                         <Text style={styles.addButtonText}>Add Subject</Text>
                       </TouchableOpacity>
                     </View>
@@ -416,7 +409,7 @@ const CGPA = () => {
 
         {parseFloat(cgpa) > 0 && (
           <TouchableOpacity style={styles.shareButton} onPress={generatePDF}>
-            <MaterialIcons name="picture-as-pdf" size={20} color="#fff" />
+            <MaterialIcons name="picture-as-pdf" size={20} color="white" />
             <Text style={styles.shareButtonText}>Export as PDF</Text>
           </TouchableOpacity>
         )}

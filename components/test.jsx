@@ -1,12 +1,12 @@
 import { View, Text } from 'react-native'
 import React from 'react'
 
-const Converter = () => {
+const test = () => {
   return (
     <View>
-      <Text>Converter</Text>
+      <Text>test</Text>
     </View>
   )
 }
 
-export default Converter
+export default test
