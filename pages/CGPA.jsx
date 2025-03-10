@@ -7,16 +7,19 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   Alert,
-  Modal
+  Modal,
+  StatusBar,
+  Animated
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 
 const CGPA = () => {
+  // State variables
   const [years, setYears] = useState([]);
   const [cgpa, setCgpa] = useState(0);
   const [semesterGPAs, setSemesterGPAs] = useState({});
@@ -34,6 +37,8 @@ const CGPA = () => {
     'E': '5',
     'F': '0'
   });
+  const [isLoading, setIsLoading] = useState(true);
+  const [fadeAnim] = useState(new Animated.Value(0));
 
   const defaultConfig = [
     { year: 1, semesters: Array(2).fill([]) },
@@ -43,12 +48,24 @@ const CGPA = () => {
   ];
 
   const gradeOptions = ['S', 'A', 'B', 'C', 'D', 'E', 'F'];
-
   const navigation = useNavigation();
 
+  // Load data on component mount
   useEffect(() => {
-    loadYearConfig();
-    loadGradeSettings();
+    const loadData = async () => {
+      setIsLoading(true);
+      await loadYearConfig();
+      await loadGradeSettings();
+      setIsLoading(false);
+      
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true
+      }).start();
+    };
+    
+    loadData();
   }, []);
 
   const loadGradeSettings = async () => {
@@ -56,12 +73,8 @@ const CGPA = () => {
       const savedGrade = await AsyncStorage.getItem('defaultGrade');
       const savedPoints = await AsyncStorage.getItem('gradePoints');
       
-      if (savedGrade) {
-        setDefaultGrade(savedGrade);
-      }
-      if (savedPoints) {
-        setGradePoints(JSON.parse(savedPoints));
-      }
+      if (savedGrade) setDefaultGrade(savedGrade);
+      if (savedPoints) setGradePoints(JSON.parse(savedPoints));
     } catch (error) {
       console.error('Error loading grade settings:', error);
     }
@@ -137,9 +150,25 @@ const CGPA = () => {
   };
 
   const removeSubject = (yearIndex, semesterIndex, subjectIndex) => {
-    const newYears = [...years];
-    newYears[yearIndex].semesters[semesterIndex].splice(subjectIndex, 1);
-    setYears(newYears);
+    Alert.alert(
+      "Confirm Deletion",
+      "Are you sure you want to remove this subject?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel"
+        },
+        {
+          text: "Delete", 
+          onPress: () => {
+            const newYears = [...years];
+            newYears[yearIndex].semesters[semesterIndex].splice(subjectIndex, 1);
+            setYears(newYears);
+          },
+          style: "destructive"
+        }
+      ]
+    );
   };
 
   const updateSubject = (yearIndex, semesterIndex, subjectIndex, field, value) => {
@@ -152,7 +181,7 @@ const CGPA = () => {
     return parseFloat(gradePoints[grade.toUpperCase()] || 0);
   };
 
-  // Single Sem
+  // Single Sem GPA calculation
   const calculateSemesterGPA = (semester) => {
     let totalCredits = 0;
     let totalGradePoints = 0;
@@ -194,10 +223,17 @@ const CGPA = () => {
     const calculatedCGPA = totalCredits ? (totalGradePoints / totalCredits).toFixed(2) : 0;
     setCgpa(calculatedCGPA);
     setSemesterGPAs(newSemesterGPAs);
+    
+    // Animate CGPA update
+    Animated.sequence([
+      Animated.timing(fadeAnim, { toValue: 0.3, duration: 200, useNativeDriver: true }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 400, useNativeDriver: true })
+    ]).start();
+    
     saveData();
   };
 
-  // storage 
+  // Save data to storage
   const saveData = async () => {
     try {
       await AsyncStorage.setItem('cgpaData', JSON.stringify(years));
@@ -230,6 +266,18 @@ const CGPA = () => {
     if (numCgpa >= 6) return '#e67e22';  // Average - Dark Orange
     if (numCgpa >= 5) return '#d35400';  // Below Average - Burnt Orange
     return '#c0392b';                    // Poor - Red
+  };
+
+  // Get a relevant motivational message based on CGPA
+  const getMotivationalMessage = (cgpaValue) => {
+    const numCgpa = parseFloat(cgpaValue);
+    if (numCgpa >= 9) return "Outstanding performance! Keep up the excellent work.";
+    if (numCgpa >= 8) return "Great job! You're performing very well.";
+    if (numCgpa >= 7) return "Good progress! Keep pushing yourself.";
+    if (numCgpa >= 6) return "You're on the right track. Keep improving!";
+    if (numCgpa >= 5) return "There's room for improvement. You can do it!";
+    if (numCgpa > 0) return "Focus on your studies. Every improvement counts!";
+    return "Add your subjects and grades to calculate your CGPA.";
   };
 
   const generatePDF = async () => {
@@ -337,7 +385,7 @@ const CGPA = () => {
         </html>
       `;
 
-      // GPDF
+      // Generate PDF
       const file = await Print.printToFileAsync({
         html: htmlContent,
         base64: false
@@ -353,33 +401,66 @@ const CGPA = () => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading your academic data...</Text>
+      </View>
+    );
+  }
+
   return (
     <LinearGradient
-      colors={['#6200ee', '#3700b3']}
+      colors={['#4c1d95', '#6200ee', '#3700b3']}
       style={styles.gradientContainer}
     >
+      <StatusBar barStyle="light-content" backgroundColor="#4c1d95" />
       <ScrollView style={styles.container}>
         <View style={styles.headerContainer}>
           <Text style={styles.title}>CGPA Calculator</Text>
-          <Text style={styles.subtitle}>Track your academic performance</Text>
+          <Text style={styles.subtitle}>Track your academic journey</Text>
         </View>
 
-        <View style={styles.cgpaCardContainer}>
+        <Animated.View 
+          style={[
+            styles.cgpaCardContainer,
+            { opacity: fadeAnim }
+          ]}
+        >
           <View style={styles.cgpaCard}>
-            <Text style={styles.cgpaLabel}>Your Current CGPA</Text>
+            <View style={styles.cgpaHeader}>
+              <Text style={styles.cgpaLabel}>Your Current CGPA</Text>
+              {parseFloat(cgpa) > 0 && (
+                <TouchableOpacity 
+                  style={styles.infoButton}
+                  onPress={() => Alert.alert("CGPA Info", 
+                    "Cumulative Grade Point Average (CGPA) is calculated by dividing the sum of the product of the credits and grade points by the sum of all credits."
+                  )}
+                >
+                  <Ionicons name="information-circle-outline" size={22} color="#6200ee" />
+                </TouchableOpacity>
+              )}
+            </View>
+            
             <Text style={[styles.cgpaValue, { color: getCgpaColor(cgpa) }]}>
               {cgpa}
             </Text>
+            
+            <Text style={styles.motivationalText}>
+              {getMotivationalMessage(cgpa)}
+            </Text>
+            
             <TouchableOpacity 
               style={styles.calculateButton} 
               onPress={calculateCGPA}
             >
+              <Ionicons name="calculator-outline" size={20} color="white" style={styles.buttonIcon} />
               <Text style={styles.calculateButtonText}>
                 Calculate CGPA
               </Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
 
         {years.map((year, yearIndex) => (
           <View key={yearIndex} style={styles.yearContainer}>
@@ -394,8 +475,15 @@ const CGPA = () => {
               return (
                 <View key={semesterIndex} style={styles.semesterContainer}>
                   <TouchableOpacity 
-                    style={styles.semesterHeader}
+                    style={[
+                      styles.semesterHeader,
+                      semesterGPAs[semesterKey] > 0 && {
+                        borderLeftWidth: 4,
+                        borderLeftColor: getCgpaColor(semesterGPAs[semesterKey])
+                      }
+                    ]}
                     onPress={() => toggleSemester(yearIndex, semesterIndex)}
+                    activeOpacity={0.7}
                   >
                     <Text style={styles.semesterTitle}>
                       Semester {semesterIndex + 1}
@@ -421,46 +509,58 @@ const CGPA = () => {
 
                   {isExpanded && (
                     <View style={styles.semesterContent}>
-                      {semester.map((subject, subjectIndex) => (
-                        <View key={subjectIndex} style={styles.subjectContainer}>
-                          <View style={styles.subjectInputs}>
-                            <TextInput
-                              style={styles.nameInput}
-                              placeholder="Subject Name"
-                              placeholderTextColor="#9e9e9e"
-                              value={subject.name}
-                              onChangeText={(text) => updateSubject(yearIndex, semesterIndex, subjectIndex, 'name', text)}
-                            />
-                            <View style={styles.subjectDetails}>
+                      {semester.length === 0 ? (
+                        <View style={styles.emptyState}>
+                          <Ionicons name="school-outline" size={40} color="#aaa" />
+                          <Text style={styles.emptyStateText}>
+                            No subjects added yet.
+                          </Text>
+                        </View>
+                      ) : (
+                        semester.map((subject, subjectIndex) => (
+                          <View key={subjectIndex} style={styles.subjectContainer}>
+                            <View style={[
+                              styles.subjectInputs,
+                              subject.grade && { borderLeftWidth: 3, borderLeftColor: getGradeColor(subject.grade) }
+                            ]}>
                               <TextInput
-                                style={styles.creditInput}
-                                placeholder="Credits"
+                                style={styles.nameInput}
+                                placeholder="Subject Name"
                                 placeholderTextColor="#9e9e9e"
-                                keyboardType="numeric"
-                                value={subject.credit}
-                                onChangeText={(text) => updateSubject(yearIndex, semesterIndex, subjectIndex, 'credit', text)}
+                                value={subject.name}
+                                onChangeText={(text) => updateSubject(yearIndex, semesterIndex, subjectIndex, 'name', text)}
                               />
-                              <TouchableOpacity
-                                style={[
-                                  styles.gradeButton,
-                                  { backgroundColor: getGradeColor(subject.grade) }
-                                ]}
-                                onPress={() => openGradeModal(yearIndex, semesterIndex, subjectIndex, subject.grade)}
-                              >
-                                <Text style={styles.gradeButtonText}>
-                                  {subject.grade || 'Grade'}
-                                </Text>
-                              </TouchableOpacity>
-                              <TouchableOpacity
-                                style={styles.removeButton}
-                                onPress={() => removeSubject(yearIndex, semesterIndex, subjectIndex)}
-                              >
-                                <MaterialIcons name="delete-outline" size={20} color="#f44336" />
-                              </TouchableOpacity>
+                              <View style={styles.subjectDetails}>
+                                <TextInput
+                                  style={styles.creditInput}
+                                  placeholder="Credits"
+                                  placeholderTextColor="#9e9e9e"
+                                  keyboardType="numeric"
+                                  value={subject.credit}
+                                  onChangeText={(text) => updateSubject(yearIndex, semesterIndex, subjectIndex, 'credit', text)}
+                                />
+                                <TouchableOpacity
+                                  style={[
+                                    styles.gradeButton,
+                                    { backgroundColor: getGradeColor(subject.grade) }
+                                  ]}
+                                  onPress={() => openGradeModal(yearIndex, semesterIndex, subjectIndex, subject.grade)}
+                                >
+                                  <Text style={styles.gradeButtonText}>
+                                    {subject.grade || 'Grade'}
+                                  </Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                  style={styles.removeButton}
+                                  onPress={() => removeSubject(yearIndex, semesterIndex, subjectIndex)}
+                                >
+                                  <MaterialIcons name="delete-outline" size={20} color="#f44336" />
+                                </TouchableOpacity>
+                              </View>
                             </View>
                           </View>
-                        </View>
-                      ))}
+                        ))
+                      )}
 
                       <TouchableOpacity
                         style={styles.addButton}
@@ -479,7 +579,7 @@ const CGPA = () => {
 
         {/* Grade Selection Modal */}
         <Modal
-          animationType="slide"
+          animationType="fade"
           transparent={true}
           visible={gradeModalVisible}
           onRequestClose={() => setGradeModalVisible(false)}
@@ -499,6 +599,9 @@ const CGPA = () => {
                     onPress={() => setSelectedGrade(grade)}
                   >
                     <Text style={styles.gradeOptionText}>{grade}</Text>
+                    {parseFloat(gradePoints[grade]) > 0 && (
+                      <Text style={styles.gradePointText}>{gradePoints[grade]}</Text>
+                    )}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -522,23 +625,25 @@ const CGPA = () => {
 
         {parseFloat(cgpa) > 0 && (
           <View style={styles.actionButtonsContainer}>
-            <TouchableOpacity style={styles.shareButton} onPress={generatePDF}>
-              <MaterialIcons name="picture-as-pdf" size={20} color="white" />
-              <Text style={styles.shareButtonText}>Export as PDF</Text>
+            <TouchableOpacity style={styles.actionButton} onPress={generatePDF}>
+              <MaterialIcons name="picture-as-pdf" size={20} color="white" style={styles.buttonIcon} />
+              <Text style={styles.actionButtonText}>Export as PDF</Text>
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={[styles.shareButton, { backgroundColor: '#03dac6', marginTop: 10 }]} 
+              style={[styles.actionButton, { backgroundColor: '#03dac6' }]} 
               onPress={() => navigation.navigate('CGPAComparison')}
             >
-              <MaterialIcons name="compare-arrows" size={20} color="white" />
-              <Text style={styles.shareButtonText}>Compare with Friends</Text>
+              <MaterialIcons name="compare-arrows" size={20} color="white" style={styles.buttonIcon} />
+              <Text style={styles.actionButtonText}>Compare with Friends</Text>
             </TouchableOpacity>
           </View>
         )}
 
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Keep track of your academic progress</Text>
+          <Text style={styles.footerText}>
+            Track your progress · Set goals · Excel
+          </Text>
         </View>
       </ScrollView>
     </LinearGradient>
@@ -555,91 +660,125 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     alignItems: 'center',
-    marginBottom: 20,
-    marginTop: 10,
+    marginBottom: 24,
+    marginTop: 12,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
     color: '#fff',
     textAlign: 'center',
+    letterSpacing: 1,
   },
   subtitle: {
     fontSize: 16,
     color: 'rgba(255, 255, 255, 0.8)',
-    marginTop: 5,
+    marginTop: 8,
+    letterSpacing: 0.5,
   },
   cgpaCardContainer: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 24,
   },
   cgpaCard: {
     backgroundColor: '#fff',
-    borderRadius: 15,
-    padding: 20,
+    borderRadius: 18,
+    padding: 24,
     width: '100%',
     alignItems: 'center',
-    elevation: 5,
+    elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
   },
-  cgpaLabel: {
-    fontSize: 16,
-    color: '#666',
+  cgpaHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
   },
+  cgpaLabel: {
+    fontSize: 18,
+    color: '#555',
+    fontWeight: '500',
+  },
+  infoButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
   cgpaValue: {
-    fontSize: 42,
+    fontSize: 52,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginVertical: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.1)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
+  },
+  motivationalText: {
+    fontSize: 16,
+    color: '#555',
+    textAlign: 'center',
+    marginBottom: 20,
+    fontStyle: 'italic',
+    paddingHorizontal: 10,
   },
   calculateButton: {
     backgroundColor: '#6200ee',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 25,
-    elevation: 2,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
+    borderRadius: 30,
+    elevation: 4,
+    shadowColor: '#6200ee',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   calculateButtonText: {
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+    letterSpacing: 0.5,
+  },
+  buttonIcon: {
+    marginRight: 8,
   },
   yearContainer: {
-    marginBottom: 20,
+    marginBottom: 24,
   },
   yearHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   yearTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#fff',
-    paddingLeft: 5,
+    paddingLeft: 10,
     borderLeftWidth: 4,
     borderLeftColor: '#03dac6',
-    paddingVertical: 5,
+    paddingVertical: 8,
   },
   semesterContainer: {
     backgroundColor: '#fff',
-    borderRadius: 12,
+    borderRadius: 14,
     marginBottom: 15,
     overflow: 'hidden',
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
   },
   semesterHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 15,
+    paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -654,9 +793,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   gpaIndicator: {
-    paddingVertical: 4,
-    paddingHorizontal: 10,
-    borderRadius: 15,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
     marginRight: 10,
   },
   gpaIndicatorText: {
@@ -665,46 +804,63 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   semesterContent: {
-    padding: 15,
+    padding: 16,
+  },
+  emptyState: {
+    alignItems: 'center',
+    padding: 20,
+  },
+  emptyStateText: {
+    color: '#aaa',
+    marginTop: 10,
+    fontSize: 16,
   },
   subjectContainer: {
-    marginBottom: 12,
+    marginBottom: 14,
   },
   subjectInputs: {
     backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    padding: 12,
+    borderRadius: 10,
+    padding: 14,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   nameInput: {
     fontSize: 16,
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 10,
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
+    fontWeight: '500',
   },
   subjectDetails: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
+    marginTop: 6,
   },
   creditInput: {
     flex: 1,
     backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-    paddingVertical: 8,
+    borderRadius: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     marginRight: 10,
     color: '#333',
+    fontSize: 15,
   },
   gradeButton: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 4,
-    paddingVertical: 8,
+    borderRadius: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     marginRight: 10,
     alignItems: 'center',
+    elevation: 2,
   },
   gradeButtonText: {
     color: '#fff',
@@ -712,16 +868,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   removeButton: {
-    padding: 8,
+    padding: 10,
+    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    borderRadius: 25,
   },
   addButton: {
     backgroundColor: '#03dac6',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 12,
-    borderRadius: 25,
-    marginTop: 10,
+    padding: 14,
+    borderRadius: 30,
+    marginTop: 16,
+    elevation: 2,
+    shadowColor: '#03dac6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
   },
   addButtonText: {
     color: '#fff',
@@ -729,83 +892,109 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-  shareButton: {
-    backgroundColor: '#f44336',
+  actionButtonsContainer: {
+    marginVertical: 24,
+    gap: 12,
+  },
+  actionButton: {
+    backgroundColor: '#FF5722',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
-    borderRadius: 25,
-    marginVertical: 20,
+    borderRadius: 30,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    marginBottom: 12,
   },
-  shareButtonText: {
+  actionButtonText: {
     color: '#fff',
-    marginLeft: 8,
     fontWeight: '600',
     fontSize: 16,
   },
   footer: {
     alignItems: 'center',
     marginBottom: 20,
+    marginTop: 10,
   },
   footerText: {
     color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
+    letterSpacing: 0.5,
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    width: '80%',
+    borderRadius: 16,
+    padding: 24,
+    width: '85%',
     maxWidth: 400,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 20,
+    marginBottom: 24,
     textAlign: 'center',
   },
   gradeOptionsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 10,
-    marginBottom: 20,
+    gap: 12,
+    marginBottom: 24,
   },
   gradeOption: {
-    width: 50,
-    height: 50,
+    width: 60,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 25,
-    margin: 5,
+    borderRadius: 30,
+    margin: 6,
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
   },
   selectedGradeOption: {
     borderWidth: 3,
-    borderColor: '#6200ee',
+    borderColor: '#fff',
   },
   gradeOptionText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: 'bold',
+  },
+  gradePointText: {
+    color: 'rgba(255, 255, 255, 0.8)',
+    fontSize: 12,
+    marginTop: 2,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
+    marginTop: 24,
   },
   modalButton: {
     flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    marginHorizontal: 5,
+    padding: 14,
+    borderRadius: 12,
+    marginHorizontal: 6,
+    elevation: 2,
   },
   cancelButton: {
     backgroundColor: '#f44336',
@@ -819,9 +1008,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-  actionButtonsContainer: {
-    marginVertical: 20,
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#4c1d95',
   },
+  loadingText: {
+    color: '#fff',
+    fontSize: 18,
+    marginTop: 20,
+  },
+  cgpaExcellent: { color: '#27ae60' },
+  cgpaVeryGood: { color: '#2980b9' },
+  cgpaGood: { color: '#f39c12' },
+  cgpaAverage: { color: '#e67e22' },
+  cgpaBelowAverage: { color: '#d35400' },
+  cgpaPoor: { color: '#c0392b' },
 });
 
 export default CGPA;
