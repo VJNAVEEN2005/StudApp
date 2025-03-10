@@ -1,4 +1,3 @@
-import React from "react";
 import {
   View,
   Text,
@@ -8,67 +7,49 @@ import {
 } from "react-native";
 import { useNavigation } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
+import React from "react";
 import {
   MaterialIcons,
   FontAwesome5,
   Ionicons,
   Feather,
+  MaterialCommunityIcons,
 } from "@expo/vector-icons";
 
-const Home = () => {
+const Setting = () => {
   const navigation = useNavigation();
 
-  // Define menu items with icons and descriptions
   const menuItems = [
-    // {
-    //   title: "Converter",
-    //   icon: <MaterialIcons name="compare-arrows" size={28} color="#6200ee" />,
-    //   description: "Convert units and measurements",
-    //   screen: "Converter"
-    // },
     {
-      title: "CGPA Calculator",
-      icon: <FontAwesome5 name="calculator" size={24} color="#6200ee" />,
-      description: "Track your academic performance",
-      screen: "CGPA",
+      title: "Config Your Year / Semester",
+      icon: <FontAwesome5 name="calendar-alt" size={24} color="#6200ee" />,
+      screen: "UpdateYearSem",
     },
     {
-      title: "CGPA Comparison",
-      icon: <MaterialIcons name="compare-arrows" size={24} color="#6200ee" />,
-      description: "Compare your CGPA with friends",
-      screen: "CGPAComparison",
+      title: "Edit Grade",
+      icon: <FontAwesome5 name="edit" size={24} color="#6200ee" />,
+      screen: "EditGrade",
     },
-    {
-      title: "Notes",
-      icon: <MaterialIcons name="notes" size={24} color="#6200ee" />,
-      description: "Notes for basic concepts",
-      screen: "Notes",
-    },
+    //  {
+    //    title: "Theme",
+    //    icon: (
+    //      <MaterialCommunityIcons
+    //        name="theme-light-dark"
+    //        size={24}
+    //        color="#6200ee"
+    //      />
+    //    ),
+    //    screen: "ThemeSetting",
+    //  },
   ];
-
   return (
     <LinearGradient
       colors={["#6200ee", "#3700b3"]}
       style={styles.gradientContainer}
     >
-      <StatusBar barStyle="light-content" backgroundColor="#6200ee" />
-
-      <View>
-        <TouchableOpacity onPress={() => navigation.navigate("Settings")} >
-          <Feather
-            name="settings"
-            size={24}
-            color="white"
-            style={{ position: "absolute", top: 10, right: 20 }}
-          />
-        </TouchableOpacity>
-      </View>
-
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Student Tools</Text>
-        <Text style={styles.headerSubtitle}>
-          All your academic utilities in one place
-        </Text>
+        <Text style={styles.headerTitle}>Settings</Text>
+        <Text style={styles.headerSubtitle}>Configure your preferences</Text>
       </View>
 
       <View style={styles.cardsContainer}>
@@ -83,7 +64,6 @@ const Home = () => {
               <View style={styles.iconContainer}>{item.icon}</View>
               <View style={styles.textContainer}>
                 <Text style={styles.cardTitle}>{item.title}</Text>
-                <Text style={styles.cardDescription}>{item.description}</Text>
               </View>
               <MaterialIcons
                 name="arrow-forward-ios"
@@ -94,13 +74,11 @@ const Home = () => {
           </TouchableOpacity>
         ))}
       </View>
-
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>Version 1.0</Text>
-      </View>
     </LinearGradient>
   );
 };
+
+export default Setting;
 
 const styles = StyleSheet.create({
   gradientContainer: {
@@ -137,7 +115,7 @@ const styles = StyleSheet.create({
   cardContent: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
+    padding: 10,
   },
   iconContainer: {
     width: 50,
@@ -178,5 +156,3 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
-
-export default Home;

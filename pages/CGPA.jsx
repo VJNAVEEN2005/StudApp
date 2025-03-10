@@ -6,27 +6,104 @@ import {
   ScrollView, 
   StyleSheet, 
   TouchableOpacity, 
-  Alert 
+  Alert,
+  Modal
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 
 const CGPA = () => {
-  const [years, setYears] = useState([
-    { year: 1, semesters: [[], []] }, 
-    { year: 2, semesters: [[], []] }, 
-    { year: 3, semesters: [[], []] }, 
-    { year: 4, semesters: [[]] }      
-  ]);
-
+  const [years, setYears] = useState([]);
   const [cgpa, setCgpa] = useState(0);
   const [semesterGPAs, setSemesterGPAs] = useState({});
   const [expandedSemesters, setExpandedSemesters] = useState({});
+  const [gradeModalVisible, setGradeModalVisible] = useState(false);
+  const [selectedGrade, setSelectedGrade] = useState('');
+  const [currentEditingSubject, setCurrentEditingSubject] = useState(null);
+  const [defaultGrade, setDefaultGrade] = useState('S');
+  const [gradePoints, setGradePoints] = useState({
+    'S': '10',
+    'A': '9',
+    'B': '8',
+    'C': '7',
+    'D': '6',
+    'E': '5',
+    'F': '0'
+  });
 
-  
+  const defaultConfig = [
+    { year: 1, semesters: Array(2).fill([]) },
+    { year: 2, semesters: Array(2).fill([]) },
+    { year: 3, semesters: Array(2).fill([]) },
+    { year: 4, semesters: Array(1).fill([]) }
+  ];
+
+  const gradeOptions = ['S', 'A', 'B', 'C', 'D', 'E', 'F'];
+
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    loadYearConfig();
+    loadGradeSettings();
+  }, []);
+
+  const loadGradeSettings = async () => {
+    try {
+      const savedGrade = await AsyncStorage.getItem('defaultGrade');
+      const savedPoints = await AsyncStorage.getItem('gradePoints');
+      
+      if (savedGrade) {
+        setDefaultGrade(savedGrade);
+      }
+      if (savedPoints) {
+        setGradePoints(JSON.parse(savedPoints));
+      }
+    } catch (error) {
+      console.error('Error loading grade settings:', error);
+    }
+  };
+
+  const loadYearConfig = async () => {
+    try {
+      // First load the year configuration
+      const savedConfig = await AsyncStorage.getItem('yearSemesterConfig');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        setYears(config);
+      } else {
+        // Default configuration if none exists
+        setYears(defaultConfig);
+        await AsyncStorage.setItem('yearSemesterConfig', JSON.stringify(defaultConfig));
+      }
+
+      // Then load the saved CGPA data
+      const savedData = await AsyncStorage.getItem('cgpaData');
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        setYears(prevYears => {
+          return prevYears.map(year => {
+            const savedYear = parsedData.find(y => y.year === year.year);
+            if (savedYear) {
+              return {
+                ...year,
+                semesters: savedYear.semesters
+              };
+            }
+            return year;
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error loading data:', error);
+      // Fallback to default config if error occurs
+      setYears(defaultConfig);
+    }
+  };
+
   const toggleSemester = (yearIndex, semesterIndex) => {
     const key = `${yearIndex}-${semesterIndex}`;
     setExpandedSemesters({
@@ -35,13 +112,26 @@ const CGPA = () => {
     });
   };
 
-  
+  const openGradeModal = (yearIndex, semesterIndex, subjectIndex, currentGrade) => {
+    setCurrentEditingSubject({ yearIndex, semesterIndex, subjectIndex });
+    setSelectedGrade(currentGrade || '');
+    setGradeModalVisible(true);
+  };
+
+  const applyGrade = () => {
+    if (currentEditingSubject) {
+      const { yearIndex, semesterIndex, subjectIndex } = currentEditingSubject;
+      updateSubject(yearIndex, semesterIndex, subjectIndex, 'grade', selectedGrade);
+    }
+    setGradeModalVisible(false);
+  };
+
   const addSubject = (yearIndex, semesterIndex) => {
     const newYears = [...years];
     newYears[yearIndex].semesters[semesterIndex].push({
       name: '',
       credit: '',
-      grade: ''
+      grade: defaultGrade // Use the default grade from settings
     });
     setYears(newYears);
   };
@@ -59,10 +149,7 @@ const CGPA = () => {
   };
 
   const getGradePoint = (grade) => {
-    const gradePoints = {
-      'S': 10, 'A': 9, 'B': 8, 'C': 7, 'D': 6, 'E': 5, 'F': 0
-    };
-    return gradePoints[grade.toUpperCase()] || 0;
+    return parseFloat(gradePoints[grade.toUpperCase()] || 0);
   };
 
   // Single Sem
@@ -120,22 +207,6 @@ const CGPA = () => {
       Alert.alert('Error', 'Failed to save your data. Please try again.');
     }
   };
-
-  const loadData = async () => {
-    try {
-      const savedData = await AsyncStorage.getItem('cgpaData');
-      if (savedData) {
-        setYears(JSON.parse(savedData));
-      }
-    } catch (error) {
-      console.error('Error loading data:', error);
-    }
-  };
-
-  useEffect(() => {
-    loadData();
-  }, []);
-
 
   const getGradeColor = (grade) => {
     const gradeColors = {
@@ -318,7 +389,7 @@ const CGPA = () => {
 
             {year.semesters.map((semester, semesterIndex) => {
               const semesterKey = `${yearIndex}-${semesterIndex}`;
-              const isExpanded = expandedSemesters[semesterKey] !== false; // Default to expanded
+              const isExpanded = expandedSemesters[semesterKey] !== false;
               
               return (
                 <View key={semesterIndex} style={styles.semesterContainer}>
@@ -369,18 +440,17 @@ const CGPA = () => {
                                 value={subject.credit}
                                 onChangeText={(text) => updateSubject(yearIndex, semesterIndex, subjectIndex, 'credit', text)}
                               />
-                              <TextInput
+                              <TouchableOpacity
                                 style={[
-                                  styles.gradeInput,
-                                  subject.grade ? { color: getGradeColor(subject.grade) } : {}
+                                  styles.gradeButton,
+                                  { backgroundColor: getGradeColor(subject.grade) }
                                 ]}
-                                placeholder="Grade"
-                                placeholderTextColor="#9e9e9e"
-                                autoCapitalize="characters"
-                                maxLength={1}
-                                value={subject.grade}
-                                onChangeText={(text) => updateSubject(yearIndex, semesterIndex, subjectIndex, 'grade', text)}
-                              />
+                                onPress={() => openGradeModal(yearIndex, semesterIndex, subjectIndex, subject.grade)}
+                              >
+                                <Text style={styles.gradeButtonText}>
+                                  {subject.grade || 'Grade'}
+                                </Text>
+                              </TouchableOpacity>
                               <TouchableOpacity
                                 style={styles.removeButton}
                                 onPress={() => removeSubject(yearIndex, semesterIndex, subjectIndex)}
@@ -407,11 +477,64 @@ const CGPA = () => {
           </View>
         ))}
 
+        {/* Grade Selection Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={gradeModalVisible}
+          onRequestClose={() => setGradeModalVisible(false)}
+        >
+          <View style={styles.modalContainer}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Select Grade</Text>
+              <View style={styles.gradeOptionsContainer}>
+                {gradeOptions.map((grade) => (
+                  <TouchableOpacity
+                    key={grade}
+                    style={[
+                      styles.gradeOption,
+                      selectedGrade === grade && styles.selectedGradeOption,
+                      { backgroundColor: getGradeColor(grade) }
+                    ]}
+                    onPress={() => setSelectedGrade(grade)}
+                  >
+                    <Text style={styles.gradeOptionText}>{grade}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setGradeModalVisible(false)}
+                >
+                  <Text style={styles.modalButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.applyButton]}
+                  onPress={applyGrade}
+                >
+                  <Text style={styles.modalButtonText}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
         {parseFloat(cgpa) > 0 && (
-          <TouchableOpacity style={styles.shareButton} onPress={generatePDF}>
-            <MaterialIcons name="picture-as-pdf" size={20} color="white" />
-            <Text style={styles.shareButtonText}>Export as PDF</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity style={styles.shareButton} onPress={generatePDF}>
+              <MaterialIcons name="picture-as-pdf" size={20} color="white" />
+              <Text style={styles.shareButtonText}>Export as PDF</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.shareButton, { backgroundColor: '#03dac6', marginTop: 10 }]} 
+              onPress={() => navigation.navigate('CGPAComparison')}
+            >
+              <MaterialIcons name="compare-arrows" size={20} color="white" />
+              <Text style={styles.shareButtonText}>Compare with Friends</Text>
+            </TouchableOpacity>
+          </View>
         )}
 
         <View style={styles.footer}>
@@ -574,17 +697,19 @@ const styles = StyleSheet.create({
     marginRight: 10,
     color: '#333',
   },
-  gradeInput: {
+  gradeButton: {
     flex: 1,
     backgroundColor: '#f0f0f0',
     borderRadius: 4,
     paddingVertical: 8,
     paddingHorizontal: 12,
     marginRight: 10,
+    alignItems: 'center',
+  },
+  gradeButtonText: {
+    color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
-    textAlign: 'center',
-    color: '#333',
   },
   removeButton: {
     padding: 8,
@@ -626,6 +751,76 @@ const styles = StyleSheet.create({
   footerText: {
     color: 'rgba(255, 255, 255, 0.7)',
     fontSize: 14,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 20,
+    width: '80%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  gradeOptionsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  gradeOption: {
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 25,
+    margin: 5,
+  },
+  selectedGradeOption: {
+    borderWidth: 3,
+    borderColor: '#6200ee',
+  },
+  gradeOptionText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+  },
+  applyButton: {
+    backgroundColor: '#6200ee',
+  },
+  modalButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  actionButtonsContainer: {
+    marginVertical: 20,
   },
 });
 
